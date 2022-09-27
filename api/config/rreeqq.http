@@ -1,0 +1,23 @@
+
+POST http://localhost:3500/auth/register
+content-type: application/json
+
+{ 
+    "email":"ali@yahoo.com",
+    "password":"1234"
+}
+###################
+POST http://localhost:3500/auth/login
+content-type: application/json
+
+{ 
+    "email":"ali@yahoo.com",
+    "password":"1234"
+}
+###################
+http://localhost:3500/auth/refresh
+
+###################
+http://localhost:3500/auth/logout
+
+############################################################################
