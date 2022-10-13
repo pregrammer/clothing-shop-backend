@@ -4,8 +4,8 @@ const errorHandler = require("../middlewares/errorHandler");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const create_user = async (req, res) => {
-  const { email, password } = req.body;
+const handleRegister = async (req, res) => {
+  const { email, password } = req.body.data;
   if (!email || !password)
     return res
       .status(400)
@@ -32,25 +32,43 @@ const create_user = async (req, res) => {
         .status(409)
         .json({ message: "این ایمیل قبلا برای کاربر دیگری وارد شده است" });
 
+    const refreshToken = jwt.sign({ email }, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: "1d",
+    });
+
     //encrypt the password
     const hashedPwd = await bcrypt.hash(password, 10);
 
     const [result2, fields2] = await connection.execute(
-      `insert into users (email, password) values ('${email}', '${hashedPwd}')`
+      `insert into users (email, password, refreshToken) values ('${email}', '${hashedPwd}', '${refreshToken}')`
     );
 
-    res.status(201).json({ message: `با موفقیت ثبت نام شدید` });
+    const accessToken = jwt.sign(
+      {
+        UserInfo: { id: result2.insertId, role: 1 },
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Creates Secure Cookie with refresh token
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 24 * 60 * 60 * 1000,
+    }); // one day: 24 * 60 * 60 * 1000
+
+    res.status(201).json({ accessToken });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "خطا در اجرای دستور در پایگاه داده" });
+    errorHandler(error, null, res, null, true);
   } finally {
     connection.end();
   }
 };
 
 const handleLogin = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body.data;
   if (!email || !password)
     return res
       .status(400)
@@ -84,10 +102,10 @@ const handleLogin = async (req, res) => {
       // create JWTs
       const accessToken = jwt.sign(
         {
-          UserInfo: result1[0],
+          UserInfo: { id: result1[0].id, role: result1[0].role },
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "20s" }
+        { expiresIn: "1h" }
       );
       const refreshToken = jwt.sign(
         { email: result1[0].email },
@@ -105,10 +123,10 @@ const handleLogin = async (req, res) => {
         secure: true,
         sameSite: "None",
         maxAge: 24 * 60 * 60 * 1000,
-      });
+      }); // one day: 24 * 60 * 60 * 1000
 
       // Send authorization access token to user
-      res.json({ accessToken });
+      res.json({ accessToken, role: result1[0].role });
     } else {
       res.status(401).json({ message: "ورود نامعتبر" });
     }
@@ -149,12 +167,13 @@ const handleRefreshToken = async (req, res) => {
       (err, decoded) => {
         if (err || result1[0].email !== decoded.email)
           return res.sendStatus(403);
+
         const accessToken = jwt.sign(
           {
-            UserInfo: result1[0],
+            UserInfo: { id: result1[0].id, role: result1[0].role },
           },
           process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "15s" }
+          { expiresIn: "1h" }
         );
         res.json({ accessToken });
       }
@@ -168,9 +187,9 @@ const handleRefreshToken = async (req, res) => {
 
 const handleLogout = async (req, res) => {
   // On client, also delete the accessToken
-
   const cookies = req.cookies;
-  if (!cookies?.jwt) return res.sendStatus(204); //No content
+  if (!cookies?.jwt)
+    return res.status(200).json({ message: "با موفقیت خارج شدید" }); //No content
   const refreshToken = cookies.jwt;
 
   //connect to db
@@ -195,16 +214,16 @@ const handleLogout = async (req, res) => {
         sameSite: "None",
         secure: true,
       });
-      return res.sendStatus(204);
+      return res.status(200).json({ message: "با موفقیت خارج شدید" });
     }
 
     // Delete refreshToken in db
     const [result2, fields2] = await connection.execute(
-      `update users set refreshToken = null where id = '${id}'`
+      `update users set refreshToken = null where id = '${result1[0].id}'`
     );
 
     res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
-    res.sendStatus(204);
+    res.status(200).json({ message: "با موفقیت خارج شدید" });
   } catch (error) {
     errorHandler(error, null, res, null, true);
   } finally {
@@ -213,7 +232,7 @@ const handleLogout = async (req, res) => {
 };
 
 module.exports = {
-  create_user,
+  handleRegister,
   handleLogin,
   handleRefreshToken,
   handleLogout,

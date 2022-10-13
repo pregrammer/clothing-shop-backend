@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
-const path = require('path');
+const path = require("path");
+const fileUpload = require("express-fileupload");
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
@@ -17,9 +18,11 @@ app.use(morgan("dev"));
 app.use(credentials);
 // Cross Origin Resource Sharing
 app.use(cors(corsOptions));
-// built-in middleware to handle urlencoded form data
-app.use(express.urlencoded({ extended: false }));
-// built-in middleware for json
+// enable files upload
+app.use(fileUpload({ createParentPath: true, parseNested: true }));
+// built-in middleware for appending body to req especially for form data
+app.use(express.urlencoded({ extended: true }));
+// built-in middleware for appending body to req
 app.use(express.json());
 //middleware for cookies
 app.use(cookieParser());
@@ -29,9 +32,13 @@ app.use("/", express.static(path.join(__dirname, "/api/public")));
 // Routes which should handle requests
 ///////////////////////////
 app.use("/auth", require("./api/routes/authRoutes"));
+app.use("/products", require("./api/routes/productsRoutes"));
 
 app.use(verifyJWT);
 //protected routes
+app.use("/users", require("./api/routes/usersRoutes"));
+app.use("/discount-codes", require("./api/routes/discountCodeRoutes"));
+app.use("/post-prices", require("./api/routes/postPriceRoutes"));
 
 // route not found
 app.all("*", (req, res) => {
