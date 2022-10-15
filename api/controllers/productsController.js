@@ -63,8 +63,8 @@ const get_all_products = async (req, res) => {
 const get_filtered_products = async (req, res) => {
   const page = parseInt(req.query.page);
   const limit = parseInt(req.query.limit);
-  const filter = parseInt(req.query.filter);
-  if (!page || !limit || !filter)
+  const kinds = req.query.kinds;
+  if (!page || !limit || !kinds)
     return res
       .status(400)
       .json({ message: "اطلاعات ارسالی برای ذریافت محصولات ناقص است" });
@@ -84,28 +84,31 @@ const get_filtered_products = async (req, res) => {
   const startIndex = (page - 1) * limit;
   const results = {};
 
+  const sql_kind = Array.isArray(kinds)
+    ? kinds.map((kind) => `kind='${kind}'`).join(" or ")
+    : `kind = '${kinds}'`;
+  const where_clause = kinds.includes("all") ? "" : ` where ${sql_kind}`;
+
   try {
     const [result2, fields2] = await connection.execute(
-      `select count(*) as count from products where kind=${filter}`
+      `select count(*) as count from products${where_clause}`
     );
     results.totallItems = result2[0].count;
 
     const [result3, fields3] = await connection.execute(
-      `select * from products where kind=${filter} order by id desc limit ${limit} OFFSET ${startIndex}`
+      `select * from products${where_clause} order by id desc limit ${limit} OFFSET ${startIndex}`
     );
 
     const result = [];
     for (let i = 0; i < result3.length; i++) {
       const [result4, fields4] = await connection.query(
-        `select title, feature from product_features where product_id=${result3[i].id};
-        select size, inventory from product_inventories where product_id=${result3[i].id};
-        select image_url from product_images where product_id=${result3[i].id}`
+        `select image_url from product_images where product_id=${result3[i].id};
+        select inventory from product_inventories where product_id=${result3[i].id}`
       );
       result.push({
         ...result3[i],
-        features: result4[0],
-        inventories: result4[1],
-        images: result4[2],
+        image_url: result4[0][0].image_url, // get first image_url
+        in_stock: result4[1].some((inv) => inv.inventory > 0),
       });
     }
 
@@ -158,6 +161,81 @@ const get_products_for_index = async (req, res) => {
   }
 };
 
+const get_products_ids = async (req, res) => {
+  //connect to db
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "خطا در برقراری ارتباط با پایگاه داده" });
+  }
+
+  try {
+    const [result1, fields1] = await connection.execute(
+      `select id from products`
+    );
+
+    const ids = result1.map((res) => res.id);
+
+    res.status(200).json(ids);
+  } catch (error) {
+    errorHandler(error, null, res, null, true);
+  } finally {
+    connection.end();
+  }
+};
+
+const get_cart_products = async (req, res) => {
+  const ids = JSON.parse(req.query.ids);
+  if (!ids)
+    return res
+      .status(400)
+      .json({ message: "اطلاعات ارسالی برای ذریافت محصولات ناقص است" });
+
+  //connect to db
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "خطا در برقراری ارتباط با پایگاه داده" });
+  }
+
+  try {
+    let where_clause1 =
+      "where " + ids.map((id) => `id = ${id.product_id}`).join(" or ");
+    let where_clause2 =
+      "where " + ids.map((id) => `id = ${id.inventory_id}`).join(" or ");
+
+    const [result1, fields1] = await connection.execute(
+      `select * from products ${where_clause1}`
+    );
+
+    const [result2, fields2] = await connection.execute(
+      `select * from product_inventories ${where_clause2}`
+    );
+
+    const result = result1.map((prod) => {
+      const product_inventory = result2.filter(
+        (inv) => inv.product_id === prod.id
+      )[0];
+      return {
+        ...prod,
+        product_inventory,
+      };
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    errorHandler(error, null, res, null, true);
+  } finally {
+    connection.end();
+  }
+};
+
 const get_product = async (req, res) => {
   const id = parseInt(req.params.id);
 
@@ -186,8 +264,8 @@ const get_product = async (req, res) => {
 
     const [result2, fields2] = await connection.query(
       `select image_url from product_images where product_id=${id};
-        select title, feature from product_features where product_id=${id};
-        select size, inventory from product_inventories where product_id=${id}`
+        select id, title, feature from product_features where product_id=${id};
+        select id, size, inventory from product_inventories where product_id=${id}`
     );
     const result = {
       ...result1[0],
@@ -284,7 +362,7 @@ const create_product = async (req, res) => {
         )
       );
       image_urls.push(
-        `http://localhost:3500/public/images/products/${folderName}/${i + 1}-${
+        `http://localhost:3500/static/images/products/${folderName}/${i + 1}-${
           img.name
         }`
       );
@@ -409,7 +487,7 @@ const update_product = async (req, res) => {
           )
         );
         image_urls.push(
-          `http://localhost:3500/public/images/products/${newFolderName}/${
+          `http://localhost:3500/static/images/products/${newFolderName}/${
             i + 1
           }-${img.name}`
         );
@@ -435,7 +513,7 @@ const update_product = async (req, res) => {
         const files = await fsPromises.readdir(folderPath);
         files.forEach((fileName) => {
           image_urls.push(
-            `http://localhost:3500/public/images/products/${newFolderName}/${fileName}`
+            `http://localhost:3500/static/images/products/${newFolderName}/${fileName}`
           );
         });
         const [result8, fields8] = await connection.execute(
@@ -509,6 +587,8 @@ module.exports = {
   get_all_products,
   get_filtered_products,
   get_products_for_index,
+  get_products_ids,
+  get_cart_products,
   get_product,
   create_product,
   update_product,

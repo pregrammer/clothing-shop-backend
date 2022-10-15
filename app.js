@@ -26,9 +26,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 //middleware for cookies
 app.use(cookieParser());
-//serve static files
-app.use("/", express.static(path.join(__dirname, "/api/public")));
-
+//serve static files (http://localhost:3500/static route, has access to public folder)
+app.use("/static", express.static(path.join(__dirname, "/api/public")));
 // Routes which should handle requests
 ///////////////////////////
 app.use("/auth", require("./api/routes/authRoutes"));

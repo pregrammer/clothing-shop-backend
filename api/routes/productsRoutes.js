@@ -5,6 +5,8 @@ const {
   get_filtered_products,
   get_product,
   get_products_for_index,
+  get_products_ids,
+  get_cart_products,
   create_product,
   update_product,
   delete_product,
@@ -16,6 +18,8 @@ const verifyJWT = require("../middlewares/verifyJWT");
 router.get("/filtered", get_filtered_products);
 router.get("/product/:id", get_product);
 router.get("/index-page", get_products_for_index);
+router.get("/ids", get_products_ids);
+router.get("/cart", get_cart_products);
 
 // just for manager
 router.get("/", verifyJWT, isAdmin, get_all_products);

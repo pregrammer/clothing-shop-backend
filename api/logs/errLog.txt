@@ -1,0 +1,4 @@
+Thu Oct 13 2022 16:57:34 GMT-0700 (Pacific Daylight Time)	Error: Unknown column 'pants' in 'where clause'
+Thu Oct 13 2022 17:24:59 GMT-0700 (Pacific Daylight Time)	Error: Unknown column 'pants' in 'where clause'
+Thu Oct 13 2022 17:25:52 GMT-0700 (Pacific Daylight Time)	Error: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'where pants' at line 1
+Thu Oct 13 2022 17:26:29 GMT-0700 (Pacific Daylight Time)	Error: Unknown column 'pants' in 'where clause'
