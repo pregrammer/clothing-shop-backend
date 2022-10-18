@@ -26,8 +26,8 @@ const get_all_discountCodes = async (req, res) => {
 };
 
 const create_discountCode = async (req, res) => {
-  const { title, percent } = req.body.data;
-  if (!title || !percent)
+  const { title, discount } = req.body.data;
+  if (!title || !discount)
     return res
       .status(400)
       .json({ message: "مشخصات ارسالی جهت ثبت کد تخفیف ناقص می باشد" });
@@ -52,10 +52,45 @@ const create_discountCode = async (req, res) => {
       return res.status(409).json({ message: "این عنوان قبلا وارد شده است" });
 
     const [result2, fields2] = await connection.execute(
-      `insert into discount_codes (title, percent) values('${title}', '${percent}')`
+      `insert into discount_codes (title, discount) values('${title}', '${discount}')`
     );
 
     res.status(201).json({ message: `کد تخفیف ی مورد نظر با موفقیت ثبت شد` });
+  } catch (error) {
+    errorHandler(error, null, res, null, true);
+  } finally {
+    connection.end();
+  }
+};
+
+const check_discount_code = async (req, res) => {
+  const code = req.query.code;
+  if (!code)
+    return res
+      .status(400)
+      .json({ message: "اطلاعات ارسالی برای دریافت کد تخفیف ناقص است" });
+  //connect to db
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "خطا در برقراری ارتباط با پایگاه داده" });
+  }
+
+  try {
+    const [result1, fields1] = await connection.execute(
+      `select * from discount_codes where title='${code}'`
+    );
+    if (result1.length === 0) {
+      return res.status(400).json({ message: "کد تخفیف نامعتبر می باشد" });
+    }
+
+    res.status(200).json({
+      discountCode: result1[0].title,
+      discountAmount: result1[0].discount,
+    });
   } catch (error) {
     errorHandler(error, null, res, null, true);
   } finally {
@@ -104,5 +139,6 @@ const delete_discountCode = async (req, res) => {
 module.exports = {
   get_all_discountCodes,
   create_discountCode,
+  check_discount_code,
   delete_discountCode,
 };

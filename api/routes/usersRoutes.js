@@ -8,14 +8,15 @@ const {
   delete_user,
 } = require("../controllers/usersController");
 const { isAdmin } = require("../middlewares/verifyRole");
+const verifyJWT = require("../middlewares/verifyJWT");
 
 // just for logged in users
-router.get("/user", get_user);
-router.put("/", update_user);
+router.get("/user", verifyJWT, get_user);
+router.put("/", verifyJWT, update_user);
 
 // just for manager
-router.get("/", isAdmin, get_all_users);
-router.put("/change-state", isAdmin, change_user_state);
-router.delete("/", isAdmin, delete_user);
+router.get("/", verifyJWT, isAdmin, get_all_users);
+router.put("/change-state", verifyJWT, isAdmin, change_user_state);
+router.delete("/", verifyJWT, isAdmin, delete_user);
 
 module.exports = router;

@@ -4,6 +4,13 @@ const bcrypt = require("bcrypt");
 const errorHandler = require("../middlewares/errorHandler");
 
 const get_user = async (req, res) => {
+  const id = req.query.id;
+  let user_id;
+  if (id && req.user.role === 2) {
+    user_id = Number(id);
+  } else {
+    user_id = req.user.id;
+  }
   //connect to db
   let connection;
   try {
@@ -16,7 +23,7 @@ const get_user = async (req, res) => {
 
   try {
     const [result1, fields1] = await connection.execute(
-      `select email, fullName, phoneNumber, postalCode, address from users where id = ${req.user.id}`
+      `select email, fullName, phoneNumber, postalCode, address from users where id = ${user_id}`
     );
     if (result1.length !== 0) {
       const user = {
@@ -173,7 +180,7 @@ const change_user_state = async (req, res) => {
     if (result1.length === 0)
       return res
         .status(400)
-        .json({ message: "کاربری ای مطابق با آیدی ارسالی وجود ندارد" });
+        .json({ message: "کاربری مطابق با آیدی ارسالی وجود ندارد" });
 
     if (result1[0].state === 1) {
       const [result2, fields2] = await connection.execute(

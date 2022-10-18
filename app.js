@@ -32,12 +32,10 @@ app.use("/static", express.static(path.join(__dirname, "/api/public")));
 ///////////////////////////
 app.use("/auth", require("./api/routes/authRoutes"));
 app.use("/products", require("./api/routes/productsRoutes"));
-
-app.use(verifyJWT);
-//protected routes
-app.use("/users", require("./api/routes/usersRoutes"));
 app.use("/discount-codes", require("./api/routes/discountCodeRoutes"));
 app.use("/post-prices", require("./api/routes/postPriceRoutes"));
+app.use("/users", require("./api/routes/usersRoutes"));
+app.use("/orders", require("./api/routes/ordersRoutes"));
 
 // route not found
 app.all("*", (req, res) => {

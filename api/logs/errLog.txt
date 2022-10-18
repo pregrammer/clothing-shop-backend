@@ -1,4 +1,2 @@
-Thu Oct 13 2022 16:57:34 GMT-0700 (Pacific Daylight Time)	Error: Unknown column 'pants' in 'where clause'
-Thu Oct 13 2022 17:24:59 GMT-0700 (Pacific Daylight Time)	Error: Unknown column 'pants' in 'where clause'
-Thu Oct 13 2022 17:25:52 GMT-0700 (Pacific Daylight Time)	Error: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'where pants' at line 1
-Thu Oct 13 2022 17:26:29 GMT-0700 (Pacific Daylight Time)	Error: Unknown column 'pants' in 'where clause'
+Mon Oct 17 2022 13:37:25 GMT-0700 (Pacific Daylight Time)	Error: Column 'id' in order clause is ambiguous
+Mon Oct 17 2022 14:32:13 GMT-0700 (Pacific Daylight Time)	Error: Unknown column 'undefined' in 'where clause'

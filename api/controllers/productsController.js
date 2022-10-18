@@ -67,7 +67,7 @@ const get_filtered_products = async (req, res) => {
   if (!page || !limit || !kinds)
     return res
       .status(400)
-      .json({ message: "اطلاعات ارسالی برای ذریافت محصولات ناقص است" });
+      .json({ message: "اطلاعات ارسالی برای دریافت محصولات ناقص است" });
 
   //connect to db
   let connection;
@@ -189,6 +189,7 @@ const get_products_ids = async (req, res) => {
 
 const get_cart_products = async (req, res) => {
   const ids = JSON.parse(req.query.ids);
+  const payment = req.query.payment;
   if (!ids)
     return res
       .status(400)
@@ -205,9 +206,18 @@ const get_cart_products = async (req, res) => {
   }
 
   try {
-    let where_clause1 =
+    if (payment === "active") {
+      const where_clause =
+        "where " + ids.map((id) => `id = ${id}`).join(" or ");
+      const [result, fields] = await connection.execute(
+        `select * from products ${where_clause}`
+      );
+      return res.status(200).json(result);
+    }
+
+    const where_clause1 =
       "where " + ids.map((id) => `id = ${id.product_id}`).join(" or ");
-    let where_clause2 =
+    const where_clause2 =
       "where " + ids.map((id) => `id = ${id.inventory_id}`).join(" or ");
 
     const [result1, fields1] = await connection.execute(

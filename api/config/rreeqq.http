@@ -33,3 +33,9 @@ http://localhost:3500/products/ids
 http://localhost:3500/products/product/10
 ###
 http://localhost:3500/products/cart?ids=[{"product_id": 9, "inventory_id": 52},{"product_id": 10, "inventory_id": 54}]
+
+############################################################################
+
+http://localhost:3500/orders/users?page=1&limit=20
+###
+http://localhost:3500/orders/user?page=1&limit=20
